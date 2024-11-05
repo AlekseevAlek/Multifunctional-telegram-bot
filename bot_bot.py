@@ -162,8 +162,17 @@ def process_custom_chars(message):
     ASCII_CHARS = list(custom_chars)
 
     bot.reply_to(message, f"Your new character set: {ASCII_CHARS}")
-    bot.send_message(message.chat.id, "I'll convert your image to ASCII art using this new set.",
-                     reply_markup=get_options_keyboard())
+    #bot.send_message(message.chat.id, "I'll convert your image to ASCII art using this new set.",
+                    # reply_markup=get_options_keyboard())
+    # Получаем изображение из состояния пользователя
+    photo_id = user_states[message.chat.id]['photo']
+    file_info = bot.get_file(photo_id)
+    downloaded_file = bot.download_file(file_info.file_path)
 
+    image_stream = io.BytesIO(downloaded_file)
+    ascii_art = image_to_ascii(image_stream)
+
+    # Отправляем результат сразу после получения изображения
+    bot.send_message(message.chat.id, f"```\n{ascii_art}\n```", parse_mode="MarkdownV2")
 
 bot.polling(none_stop=True)
