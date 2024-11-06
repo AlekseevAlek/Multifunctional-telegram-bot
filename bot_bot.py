@@ -1,5 +1,5 @@
 import telebot
-from PIL import Image
+from PIL import Image, ImageOps
 import io
 from telebot import types
 import os
@@ -74,6 +74,10 @@ def pixelate_image(image, pixel_size):
     )
     return image
 
+def invert_colors(image):
+    """Применяет функцию ImageOps.invert к изображению"""
+    return ImageOps.invert(image)
+
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
@@ -95,7 +99,8 @@ def get_options_keyboard():
     pixelate_btn = types.InlineKeyboardButton("Pixelate", callback_data="pixelate")
     ascii_btn = types.InlineKeyboardButton("ASCII Art", callback_data="ascii")
     custom_chars_btn = types.InlineKeyboardButton("Custom Chars", callback_data="custom_chars")
-    keyboard.add(pixelate_btn, ascii_btn, custom_chars_btn)
+    invert_colors_btn = types.InlineKeyboardButton("Invert Colors", callback_data="invert_colors")
+    keyboard.add(pixelate_btn, ascii_btn, custom_chars_btn, invert_colors_btn)
     return keyboard
 
 
@@ -115,6 +120,10 @@ def callback_query(call):
     elif call.data == "custom_chars":
         bot.answer_callback_query(call.id, "Please enter your custom character set for ASCII art.")
         bot.register_next_step_handler(call.message, get_custom_chars)
+    elif call.data == "invert_colors":
+        bot.answer_callback_query(call.id, "Applying invert colors...")
+        invert_and_send(call.message)
+
 
 def pixelate_and_send(message):
     '''Пикселизирует изображение и отправляет его пользователю'''
@@ -142,6 +151,21 @@ def ascii_and_send(message):
     ascii_art = image_to_ascii(image_stream)
     bot.send_message(message.chat.id, f"```\n{ascii_art}\n```", parse_mode="MarkdownV2")
 
+def invert_and_send(message):
+    """Применяет функцию инвертирования цветов к изображению и отправляет результат"""
+    photo_id = user_states[message.chat.id]['photo']
+    file_info = bot.get_file(photo_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+
+    image_stream = io.BytesIO(downloaded_file)
+    image = Image.open(image_stream)
+    inverted_image = invert_colors(image)
+
+    output_stream = io.BytesIO()
+    inverted_image.save(output_stream, format="JPEG")
+    output_stream.seek(0)
+    bot.send_photo(message.chat.id, output_stream)
+
 def get_custom_chars(message):
     '''Запрашивает у пользователя новый набор символов'''
     bot.reply_to(message, "Please enter your custom character set for ASCII art. You can use up to 16 unique characters.")
@@ -162,8 +186,7 @@ def process_custom_chars(message):
     ASCII_CHARS = list(custom_chars)
 
     bot.reply_to(message, f"Your new character set: {ASCII_CHARS}")
-    #bot.send_message(message.chat.id, "I'll convert your image to ASCII art using this new set.",
-                    # reply_markup=get_options_keyboard())
+
     # Получаем изображение из состояния пользователя
     photo_id = user_states[message.chat.id]['photo']
     file_info = bot.get_file(photo_id)
@@ -174,5 +197,8 @@ def process_custom_chars(message):
 
     # Отправляем результат сразу после получения изображения
     bot.send_message(message.chat.id, f"```\n{ascii_art}\n```", parse_mode="MarkdownV2")
+
+
+
 
 bot.polling(none_stop=True)
