@@ -4,7 +4,6 @@ import io
 from telebot import types
 import os
 
-
 TOKEN = os.environ.get('TOKEN')
 bot = telebot.TeleBot(TOKEN)
 
@@ -15,7 +14,7 @@ ASCII_CHARS = '@%#*+=-:. '
 
 
 def resize_image(image, new_width=100):
-    '''Изменяет размер изображения, сохраняя пропорции'''
+    """Изменяет размер изображения, сохраняя пропорции"""
     width, height = image.size
     ratio = height / width
     new_height = int(new_width * ratio)
@@ -23,12 +22,12 @@ def resize_image(image, new_width=100):
 
 
 def grayify(image):
-    '''Конвертирует изображение в оттенки серого'''
+    """Конвертирует изображение в оттенки серого"""
     return image.convert("L")
 
 
 def image_to_ascii(image_stream, new_width=40):
-    '''Преобразует изображение в ASCII art'''
+    """Преобразует изображение в ASCII art"""
     # Переводим в оттенки серого
     image = Image.open(image_stream).convert('L')
 
@@ -53,7 +52,7 @@ def image_to_ascii(image_stream, new_width=40):
 
 
 def pixels_to_ascii(image):
-    '''Преобразует пиксели изображения в символы ASCII'''
+    """Преобразует пиксели изображения в символы ASCII"""
     pixels = image.getdata()
     characters = ""
     for pixel in pixels:
@@ -63,7 +62,7 @@ def pixels_to_ascii(image):
 
 # Огрубляем изображение
 def pixelate_image(image, pixel_size):
-    '''Пикселизация изображения'''
+    """Пикселизация изображения"""
     image = image.resize(
         (image.size[0] // pixel_size, image.size[1] // pixel_size),
         Image.NEAREST
@@ -74,39 +73,54 @@ def pixelate_image(image, pixel_size):
     )
     return image
 
+
 def invert_colors(image):
     """Применяет функцию ImageOps.invert к изображению"""
     return ImageOps.invert(image)
 
 
+def mirror_image(image, axis='horizontal'):
+    """Создает отраженную копию изображения по горизонтали или вертикали"""
+    if axis == 'horizontal':
+        return image.transpose(Image.FLIP_LEFT_RIGHT)
+    elif axis == 'vertical':
+        return image.transpose(Image.FLIP_TOP_BOTTOM)
+    else:
+        raise ValueError("Invalid axis. Use 'horizontal' or 'vertical'.")
+
+
+
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    '''Обрабатывает команды /start и /help, отправляя приветственное сообщение'''
+    """Обрабатывает команды /start и /help, отправляя приветственное сообщение"""
     bot.reply_to(message, "Send me an image, and I'll provide options for you!")
 
 
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
-    '''Реагирует на изображения, отправляемые пользователем, и предлагает варианты обработки'''
+    """Реагирует на изображения, отправляемые пользователем, и предлагает варианты обработки"""
     bot.reply_to(message, "I got your photo! Please choose what you'd like to do with it.",
                  reply_markup=get_options_keyboard())
     user_states[message.chat.id] = {'photo': message.photo[-1].file_id}
 
 
 def get_options_keyboard():
-    ''' Создает клавиатуру с опциями для обработки изображения'''
+    """ Создает клавиатуру с опциями для обработки изображения"""
     keyboard = types.InlineKeyboardMarkup()
     pixelate_btn = types.InlineKeyboardButton("Pixelate", callback_data="pixelate")
     ascii_btn = types.InlineKeyboardButton("ASCII Art", callback_data="ascii")
     custom_chars_btn = types.InlineKeyboardButton("Custom Chars", callback_data="custom_chars")
     invert_colors_btn = types.InlineKeyboardButton("Invert Colors", callback_data="invert_colors")
-    keyboard.add(pixelate_btn, ascii_btn, custom_chars_btn, invert_colors_btn)
+    mirror_horizontal_btn = types.InlineKeyboardButton("Mirror Horizontal", callback_data="mirror_horizontal")
+    mirror_vertical_btn = types.InlineKeyboardButton("Mirror Vertical", callback_data="mirror_vertical")
+    keyboard.add(pixelate_btn, ascii_btn, custom_chars_btn, invert_colors_btn, mirror_horizontal_btn,
+                 mirror_vertical_btn)
     return keyboard
 
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
-    '''Определяет действия в ответ на выбор пользователя и вызывает соответствующую функцию обработки'''
+    """Определяет действия в ответ на выбор пользователя и вызывает соответствующую функцию обработки"""
     if call.data == "pixelate":
         bot.answer_callback_query(call.id, "Pixelating your image...")
         pixelate_and_send(call.message)
@@ -123,10 +137,14 @@ def callback_query(call):
     elif call.data == "invert_colors":
         bot.answer_callback_query(call.id, "Applying invert colors...")
         invert_and_send(call.message)
+    elif call.data.startswith("mirror_"):
+        axis = call.data.split("_")[1]
+        bot.answer_callback_query(call.id, f"MIRRORING image along {axis} axis...")
+        mirror_and_send(call.message, axis)
 
 
 def pixelate_and_send(message):
-    '''Пикселизирует изображение и отправляет его пользователю'''
+    """Пикселизирует изображение и отправляет его пользователю"""
     photo_id = user_states[message.chat.id]['photo']
     file_info = bot.get_file(photo_id)
     downloaded_file = bot.download_file(file_info.file_path)
@@ -142,7 +160,7 @@ def pixelate_and_send(message):
 
 
 def ascii_and_send(message):
-    '''Преобразует изображение в ASCII art и отправляет его пользователю'''
+    """Преобразует изображение в ASCII art и отправляет его пользователю"""
     photo_id = user_states[message.chat.id]['photo']
     file_info = bot.get_file(photo_id)
     downloaded_file = bot.download_file(file_info.file_path)
@@ -150,6 +168,7 @@ def ascii_and_send(message):
     image_stream = io.BytesIO(downloaded_file)
     ascii_art = image_to_ascii(image_stream)
     bot.send_message(message.chat.id, f"```\n{ascii_art}\n```", parse_mode="MarkdownV2")
+
 
 def invert_and_send(message):
     """Применяет функцию инвертирования цветов к изображению и отправляет результат"""
@@ -166,9 +185,27 @@ def invert_and_send(message):
     output_stream.seek(0)
     bot.send_photo(message.chat.id, output_stream)
 
+
+def mirror_and_send(message, axis):
+    """Применяет функцию отражения к изображению и отправляет результат"""
+    photo_id = user_states[message.chat.id]['photo']
+    file_info = bot.get_file(photo_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+
+    image_stream = io.BytesIO(downloaded_file)
+    image = Image.open(image_stream)
+    mirrored_image = mirror_image(image, axis)
+
+    output_stream = io.BytesIO()
+    mirrored_image.save(output_stream, format="JPEG")
+    output_stream.seek(0)
+    bot.send_photo(message.chat.id, output_stream)
+
+
 def get_custom_chars(message):
-    '''Запрашивает у пользователя новый набор символов'''
-    bot.reply_to(message, "Please enter your custom character set for ASCII art. You can use up to 16 unique characters.")
+    """Запрашивает у пользователя новый набор символов"""
+    bot.reply_to(message,
+                 "Please enter your custom character set for ASCII art. You can use up to 16 unique characters.")
     bot.send_message(message.chat.id,
                      "Please enter your custom character set for ASCII art. You can use up to 16 unique characters.",
                      reply_markup=types.ReplyKeyboardRemove())
@@ -176,7 +213,7 @@ def get_custom_chars(message):
 
 
 def process_custom_chars(message):
-    '''Обрабатывает введенный пользователем набор символов'''
+    """Обрабатывает введенный пользователем набор символов"""
     custom_chars = message.text
     if len(custom_chars) > 16:
         bot.reply_to(message, "Please enter up to 16 unique characters.")
@@ -197,8 +234,6 @@ def process_custom_chars(message):
 
     # Отправляем результат сразу после получения изображения
     bot.send_message(message.chat.id, f"```\n{ascii_art}\n```", parse_mode="MarkdownV2")
-
-
 
 
 bot.polling(none_stop=True)
