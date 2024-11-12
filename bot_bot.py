@@ -109,11 +109,10 @@ def resize_for_sticker(image, max_size=512):
     # Создаем новое изображение с заданными размерами
     resized_image = Image.new('RGB', (new_width, new_height))
 
-    # Применяем масштабирование к исходному изображению
+    # Применяем масштабирование к исходному изображению и вставляем его в новое изображение
     resized_image.paste(image.resize((new_width, new_height)), (0, 0))
 
     return resized_image
-
 
 
 @bot.message_handler(commands=['start', 'help'])
@@ -268,8 +267,6 @@ def resize_and_send(message):
     resized_image.save(output_stream, format="JPEG")
     output_stream.seek(0)
     bot.send_photo(message.chat.id, output_stream)
-
-
 def get_custom_chars(message):
     """Запрашивает у пользователя новый набор символов"""
     bot.reply_to(message,
