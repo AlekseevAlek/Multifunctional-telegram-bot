@@ -94,6 +94,6 @@ pixels_to_ascii(image):
 
 -resize_for_sticker(image, max_size=512): Изменяет размер изображения для стикера, сохраняя пропорции и ограничивая максимальный размер.
 
-Пример работы програмы:
+Пример работы програмы - тепловая карта:
 
 ![Image alt](https://github.com/AlekseevAlek/Multifunctional-telegram-bot/blob/master/тепловая%20карта.png)
