@@ -12,6 +12,7 @@ user_states = {}  # тут будем хранить информацию о д�
 
 # набор символов из которых составляем изображение
 ASCII_CHARS = '@%#*+=-:. '
+
 JOKES = [
     "От знаний еще никто не умирал, но... скелет в кабинете биологии настораживает.",
     "Языки программирования бывают двух видов: те, на которые все жалуются, и такие, на которых никто не пишет.",
@@ -24,7 +25,17 @@ JOKES = [
     "Нужно постараться выздороветь до того, как начнут лечить. "
 ]
 
-
+COMPLIMENTS = [
+    "Ты такой крутой!",
+    "Твоя улыбка просто чудо!",
+    "Ты так уникален, что я не знаю, где найти тебя в магазине людей.",
+    "Вот такой ты - уникальный и особенный.",
+    "Твоя личность - это настоящее произведение искусства.",
+    "Ты такой яркий и красивый, как солнце на ясный день.",
+    "Ты лучше всего всех, потому что ты - это ты!",
+    "Ты такой умный, что даже не знаешь, всю глубину твоей мудрости.",
+    "Ты такой крутой, что даже звезды завидуют тебе.",
+]
 
 
 def resize_image(image, new_width=100):
@@ -140,6 +151,12 @@ def send_random_joke(message):
     random_joke = random.choice(JOKES)
     bot.reply_to(message, f"Вот для тебя случайная шутка:\n\n{random_joke}")
 
+@bot.message_handler(commands=['randomcompliment'])
+def send_random_compliment(message):
+    """Отправляет случайный комплимент пользователю"""
+    random_compliment = random.choice(COMPLIMENTS)
+    bot.reply_to(message, f"Вот для тебя случайный комплимент:\n\n{random_compliment}")
+
 
 
 @bot.message_handler(content_types=['photo'])
@@ -162,8 +179,9 @@ def get_options_keyboard():
     heatmap_btn = types.InlineKeyboardButton("Heatmap", callback_data="heatmap")
     resize_sticker_btn = types.InlineKeyboardButton("Resize Sticker", callback_data="resize_sticker")
     random_joke_btn = types.InlineKeyboardButton("Random Joke", callback_data="random_joke")
+    random_compliment_btn = types.InlineKeyboardButton("Random Compliment", callback_data="random_compliment")
     keyboard.add(pixelate_btn, ascii_btn, custom_chars_btn, invert_colors_btn, mirror_horizontal_btn,
-                 mirror_vertical_btn, heatmap_btn, resize_sticker_btn, random_joke_btn)
+                 mirror_vertical_btn, heatmap_btn, resize_sticker_btn, random_joke_btn, random_compliment_btn)
     return keyboard
 
 
@@ -199,6 +217,9 @@ def callback_query(call):
     elif call.data == "random_joke":
         bot.answer_callback_query(call.id, "Sending random joke...")
         send_random_joke(call.message)
+    elif call.data == "random_compliment":
+        bot.answer_callback_query(call.id, "Sending random compliment...")
+        send_random_compliment(call.message)
 
 
 def pixelate_and_send(message):
