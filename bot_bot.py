@@ -3,6 +3,7 @@ from PIL import Image, ImageOps
 import io
 from telebot import types
 import os
+import random
 
 TOKEN = os.environ.get('TOKEN')
 bot = telebot.TeleBot(TOKEN)
@@ -11,6 +12,19 @@ user_states = {}  # тут будем хранить информацию о д�
 
 # набор символов из которых составляем изображение
 ASCII_CHARS = '@%#*+=-:. '
+JOKES = [
+    "От знаний еще никто не умирал, но... скелет в кабинете биологии настораживает.",
+    "Языки программирования бывают двух видов: те, на которые все жалуются, и такие, на которых никто не пишет.",
+    "Знаешь объектно-ориентированный способ разбогатеть? Наследование!",
+    "Я не люблю читать научно-популярную литературу. Там мало формул, и ничего не понятно.",
+    "Ученые доказали, что самое большое количество витаминов содержится в аптеке.",
+    "Инопланетяне, похищенные другими инопланетянами, чувствуют себя не в своей тарелке.",
+    "Мы хотим убедиться, что вы не робот. Пожалуйста, навредите человечку в окошке ниже.",
+    "Многие убеждены, что Незнайка побывал на Луне, но не верят, что там были американцы.",
+    "Нужно постараться выздороветь до того, как начнут лечить. "
+]
+
+
 
 
 def resize_image(image, new_width=100):
@@ -120,6 +134,13 @@ def send_welcome(message):
     """Обрабатывает команды /start и /help, отправляя приветственное сообщение"""
     bot.reply_to(message, "Send me an image, and I'll provide options for you!")
 
+@bot.message_handler(commands=['randomjoke'])
+def send_random_joke(message):
+    """Отправляет случайную шутку пользователю"""
+    random_joke = random.choice(JOKES)
+    bot.reply_to(message, f"Вот для тебя случайная шутка:\n\n{random_joke}")
+
+
 
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
@@ -140,8 +161,9 @@ def get_options_keyboard():
     mirror_vertical_btn = types.InlineKeyboardButton("Mirror Vertical", callback_data="mirror_vertical")
     heatmap_btn = types.InlineKeyboardButton("Heatmap", callback_data="heatmap")
     resize_sticker_btn = types.InlineKeyboardButton("Resize Sticker", callback_data="resize_sticker")
+    random_joke_btn = types.InlineKeyboardButton("Random Joke", callback_data="random_joke")
     keyboard.add(pixelate_btn, ascii_btn, custom_chars_btn, invert_colors_btn, mirror_horizontal_btn,
-                 mirror_vertical_btn, heatmap_btn, resize_sticker_btn)
+                 mirror_vertical_btn, heatmap_btn, resize_sticker_btn, random_joke_btn)
     return keyboard
 
 
@@ -174,6 +196,9 @@ def callback_query(call):
     elif call.data == "resize_sticker":
         bot.answer_callback_query(call.id, "Resizing image for sticker...")
         resize_and_send(call.message)
+    elif call.data == "random_joke":
+        bot.answer_callback_query(call.id, "Sending random joke...")
+        send_random_joke(call.message)
 
 
 def pixelate_and_send(message):
