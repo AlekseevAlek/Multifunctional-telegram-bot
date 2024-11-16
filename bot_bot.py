@@ -158,6 +158,19 @@ def send_random_compliment(message):
     bot.reply_to(message, f"Вот для тебя случайный комплимент:\n\n{random_compliment}")
 
 
+@bot.message_handler(commands=['flipcoin'])
+def flip_coin(message):
+    """Симулирует подбрасывание монетки и отправляет результат"""
+    result = random.choice(["Heads", "Tails"])
+
+    if result == "Heads":
+        coin_result = "Орел"
+    else:
+        coin_result = "Решка"
+
+    bot.reply_to(message, f"Выпала {coin_result}!")
+
+
 
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
@@ -180,8 +193,10 @@ def get_options_keyboard():
     resize_sticker_btn = types.InlineKeyboardButton("Resize Sticker", callback_data="resize_sticker")
     random_joke_btn = types.InlineKeyboardButton("Random Joke", callback_data="random_joke")
     random_compliment_btn = types.InlineKeyboardButton("Random Compliment", callback_data="random_compliment")
+    flip_coin_btn = types.InlineKeyboardButton("Flip Coin", callback_data="flip_coin")
     keyboard.add(pixelate_btn, ascii_btn, custom_chars_btn, invert_colors_btn, mirror_horizontal_btn,
-                 mirror_vertical_btn, heatmap_btn, resize_sticker_btn, random_joke_btn, random_compliment_btn)
+                 mirror_vertical_btn, heatmap_btn, resize_sticker_btn, random_joke_btn, random_compliment_btn,
+                 flip_coin_btn)
     return keyboard
 
 
@@ -220,6 +235,9 @@ def callback_query(call):
     elif call.data == "random_compliment":
         bot.answer_callback_query(call.id, "Sending random compliment...")
         send_random_compliment(call.message)
+    elif call.data == "flip_coin":
+        bot.answer_callback_query(call.id, "Flipping coin...")
+        send_flip_coin_result(call.message)
 
 
 def pixelate_and_send(message):
@@ -313,6 +331,19 @@ def resize_and_send(message):
     resized_image.save(output_stream, format="JPEG")
     output_stream.seek(0)
     bot.send_photo(message.chat.id, output_stream)
+
+
+def send_flip_coin_result(message):
+    """Отправляет результат подбрасывания монетки"""
+    result = random.choice(["Heads", "Tails"])
+
+    if result == "Heads":
+        coin_result = "Орел"
+    else:
+        coin_result = "Решка"
+
+    bot.reply_to(message, f"Выпала {coin_result}!")
+
 def get_custom_chars(message):
     """Запрашивает у пользователя новый набор символов"""
     bot.reply_to(message,
